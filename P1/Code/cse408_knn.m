@@ -13,7 +13,18 @@ if DstType == 1 %SSD
     end
     %disp(dist)
 elseif DstType == 2 %Angle Between Vectors
-    %PUT YOUR CODE HERE 
+    %PUT YOUR CODE HERE
+    [m,n] = size(train_feat);
+    dist = zeros(1,n);
+    for i=1:n
+      top = dot(test_feat,train_feat(:,i));
+      bottom = sqrt(dot(test_feat,test_feat)) .* sqrt(dot(train_feat(:,i),train_feat(:,i)));
+      dist(i) = acos((top ./ bottom));
+    end
+    %disp(top);
+    %disp(bottom);
+    %disp(divided);
+    %disp(dist);
 elseif DstType == 3 %Number of words in common
     %PUT YOUR CODE HERE
     [m,n] = size(train_feat);
