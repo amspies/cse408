@@ -30,7 +30,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 correct_ct = 0;
-DistType = 2; % test different distance type
+DistType = 3; % test different distance type
 K = 3; % test different K.
 
 for ii = 1:size(label,2)
