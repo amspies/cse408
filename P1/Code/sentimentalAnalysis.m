@@ -67,9 +67,7 @@ for k=1:length(test_token)
         numberOfWords = numberOfWords + 1;
         sent_score = sent_score + cM(test_token{k});
     end
-end 
-
-sent_score = sent_score / numberOfWords;
+end
 
 if sent_score > 0
      if sent_score > 0.7
