@@ -1,0 +1,29 @@
+%Returns a feature vector of extracted features from image
+
+function featVect = featureExtraction(imageFileName)
+    % Read in an image and c
+    [I,C] = imread(imageFileName);
+    if ~isempty(C)
+        rgbImage = ind2rgb(I,C);
+    end
+    % Average Pixel Color
+    re = rgbImage(:,:,1);
+    gr = rgbImage(:,:,2);
+    bl = rgbImage(:,:,3);
+    count = 0;
+    reTotal = 0;
+    grTotal = 0;
+    blTotal = 0;
+    for i = 1:numel(re)
+        if re(i) == 0 && gr(i) == 0 && bl(i) == 0
+            %DO NOTHING FOR ALL BLACK
+        else
+            count = count + 1;
+            reTotal = reTotal + re(i);
+            grTotal = grTotal + gr(i);
+            blTotal = blTotal + bl(i);
+        end
+    end
+    featVect = [reTotal,grTotal,blTotal] ./ count;
+    display(count);
+end
