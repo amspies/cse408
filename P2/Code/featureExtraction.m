@@ -60,5 +60,5 @@ function featVect = featureExtraction(imageFileName)
     testImage = cat(3,reSpatial,grSpatial,blSpatial);
     imshow(testImage);
     
-    featVect = {rgbPixelAverage,spa};
+    featVect = {imageFileName,rgbPixelAverage,spa};
 end
