@@ -1,0 +1,15 @@
+answer = '0';
+
+function n = testFunction(a)
+    display(a)
+    n = a
+end
+
+while answer ~= '2'
+    answer = input('What do you want to do?\n1)Query for Image\n2)Quit\nChoice: ','s');
+    if answer == '1'
+        testFunction()
+    elseif answer ~= '2'
+        display('Invalid Choice, Try Again.');
+    end
+end

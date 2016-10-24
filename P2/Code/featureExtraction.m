@@ -1,4 +1,8 @@
 %Returns a feature vector of extracted features from image
+%Index 1: File Path Name
+%Index 2: Average Pixel Color (Not including rgb(0,0,0))
+%Index 3: Spatial Grid of Average Pixel Color
+%Index 4: Color Histogram
 
 function featVect = featureExtraction(imageFileName)
     % Read in an image and convert it to RGB
@@ -53,12 +57,20 @@ function featVect = featureExtraction(imageFileName)
            grSpatial(start:stop,innerStart:innerStop) = greenMean;
            blueMean = mean2(blSpatial(start:stop,innerStart:innerStop));
            blSpatial(start:stop,innerStart:innerStop) = blueMean;
-           spa = [spa;[redMean,greenMean,blueMean]];
+           spa = [spa,redMean,greenMean,blueMean];
         end
     end
     
-    testImage = cat(3,reSpatial,grSpatial,blSpatial);
-    imshow(testImage);
+    %testImage = cat(3,reSpatial,grSpatial,blSpatial);
+    %imshow(testImage);
     
-    featVect = {imageFileName,rgbPixelAverage,spa};
+    % Color Histogram
+    % Concatenated Red, Green, and Blue Color Histograms
+    % of the image.
+    redHist = hist(reshape(double(rgbImage(:,:,1)),[128*128 1]),25);
+    greenHist = hist(reshape(double(rgbImage(:,:,2)),[128*128 1]),25);
+    blueHist = hist(reshape(double(rgbImage(:,:,3)),[128*128 1]),25);
+    completeHist = [redHist, greenHist, blueHist];
+    
+    featVect = {imageFileName,rgbPixelAverage,spa,completeHist};
 end
