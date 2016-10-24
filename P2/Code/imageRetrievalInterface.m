@@ -25,7 +25,7 @@ while answer ~= '2'
                     currentImage = cat(2,currentImage,rgbImage);
                 end
             end
-            imshow(currentImage);
+            figure,imshow(currentImage);
         else
             display('Invalid Choices, Try Again.')
         end
