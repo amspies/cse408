@@ -5,7 +5,7 @@ library = createFeatureLibrary('../Data/Database');
 while answer ~= '2'
     answer = input('\nWhat do you want to do?\n1)Query for Image\n2)Quit\nChoice: ','s');
     if answer == '1'
-        featureChoice = input('\nWhat feature do you want to use?\n1)Average Pixel Color\n2)Spatial Grid of Average Pixel Color\n3)Color Histograms\n4)Other\nAnswer: ');
+        featureChoice = input('\nWhat feature do you want to use?\n1)Average Pixel Color\n2)Spatial Grid of Average Pixel Color\n3)Color Histograms\n4)Edge Dectection using Image Segmentation\nAnswer: ');
         featureChoice = featureChoice + 1;
         algoChoice = input('\nWhich distance algorithm do you want to use?\n1)SSD\n2)Angle Between Vectors\nChoice: ');
         if (algoChoice == 1 || algoChoice == 2) && (featureChoice > 1 && featureChoice < 6)
