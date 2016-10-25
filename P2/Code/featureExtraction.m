@@ -3,6 +3,7 @@
 %Index 2: Average Pixel Color (Not including rgb(0,0,0))
 %Index 3: Spatial Grid of Average Pixel Color
 %Index 4: Color Histogram
+%Index 5: Edges
 
 function featVect = featureExtraction(imageFileName)
     % Read in an image and convert it to RGB
@@ -72,5 +73,21 @@ function featVect = featureExtraction(imageFileName)
     blueHist = hist(reshape(double(rgbImage(:,:,3)),[128*128 1]),25);
     completeHist = [redHist, greenHist, blueHist];
     
-    featVect = {imageFileName,rgbPixelAverage,spa,completeHist};
+    
+    % Edge Detection using Image Segmentation
+    [~, threshold] = edge(I, 'sobel');
+    fudgeFactor = 0.5;
+    BWs = edge(I, 'sobel', threshold * fudgeFactor);
+    se90 = strel('line', 3, 90);
+    se0 = strel('line', 3, 0);
+    BWsdil = imdilate(BWs, [se90, se0]);
+    BWdfill = imfill(BWsdil, 'holes');
+    BWnobord = imclearborder(BWdfill, 4);
+    seD = strel('diamond', 1);
+    BWfinal = imerode(BWnobord, seD);
+    BWfinal = imerode(BWfinal, seD);
+    
+    
+    
+    featVect = {imageFileName,rgbPixelAverage,spa,completeHist,BWfinal};
 end
