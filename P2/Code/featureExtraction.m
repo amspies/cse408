@@ -20,21 +20,10 @@ function featVect = featureExtraction(imageFileName)
     re = rgbImage(:,:,1);
     gr = rgbImage(:,:,2);
     bl = rgbImage(:,:,3);
-    count = 0;
-    reTotal = 0;
-    grTotal = 0;
-    blTotal = 0;
-    for i = 1:numel(re)
-        if re(i) == 0 && gr(i) == 0 && bl(i) == 0
-            %DO NOTHING FOR ALL BLACK
-        else
-            count = count + 1;
-            reTotal = reTotal + re(i);
-            grTotal = grTotal + gr(i);
-            blTotal = blTotal + bl(i);
-        end
-    end
-    rgbPixelAverage = [reTotal,grTotal,blTotal] ./ count;
+    reTotal = mean2(re);
+    grTotal = mean2(gr);
+    blTotal = mean2(bl);
+    rgbPixelAverage = [reTotal,grTotal,blTotal];
     
     % Spatial Grid of average pixel color
     % All pictures are made into an 8x8 grid
@@ -42,16 +31,19 @@ function featVect = featureExtraction(imageFileName)
     % the pixel. These RGB values were then
     % stored in a vector that will be put into
     % the feature cell vector.
+    %Pixel Width of Squares
+    PIXEL_WIDTH = 16;
+    NUM_SQS = (128/PIXEL_WIDTH)- 1;
     spa = [];
     reSpatial = re;
     grSpatial = gr;
     blSpatial = bl;
-    for j = 0:7
-        start = ((j)*16)+1;
-        stop = ((j+1)*16);
-        for i = 0:7
-           innerStart = ((i)*16)+1;
-           innerStop = ((i+1)*16);
+    for j = 0:NUM_SQS
+        start = ((j)*PIXEL_WIDTH)+1;
+        stop = ((j+1)*PIXEL_WIDTH);
+        for i = 0:NUM_SQS
+           innerStart = ((i)*PIXEL_WIDTH)+1;
+           innerStop = ((i+1)*PIXEL_WIDTH);
            redMean = mean2(reSpatial(start:stop,innerStart:innerStop));
            reSpatial(start:stop,innerStart:innerStop) = redMean;
            greenMean = mean2(grSpatial(start:stop,innerStart:innerStop));
@@ -73,7 +65,8 @@ function featVect = featureExtraction(imageFileName)
     blueHist = hist(reshape(double(rgbImage(:,:,3)),[128*128 1]),25);
     completeHist = [redHist, greenHist, blueHist];
     
-    %Edge Dectection using Image Segmentation 
+    %Edge Dectection using Image Segmentation
+    %Edge Detection Part
     [~, threshold] = edge(I, 'sobel');
     fudgeFactor = 0.5;
     BWs = edge(I, 'sobel', threshold * fudgeFactor);
@@ -85,7 +78,25 @@ function featVect = featureExtraction(imageFileName)
     seD = strel('diamond', 1);
     BWfinal = imerode(BWnobord, seD);
     BWfinal = imerode(BWfinal, seD);
-    BWfinal = double(reshape(BWfinal,[1 128*128]));
+    %Image Segmentation Part
+    BWspatial = [];
+    %Pixel Width of squares
+    PIXEL_WIDTH = 8;
+    NUM_SQS = (128/PIXEL_WIDTH)- 1;
+    bwCopy = BWfinal;
+    for j = 0:NUM_SQS
+        start = ((j)*PIXEL_WIDTH)+1;
+        stop = ((j+1)*PIXEL_WIDTH);
+        for i = 0:NUM_SQS
+           innerStart = ((i)*PIXEL_WIDTH)+1;
+           innerStop = ((i+1)*PIXEL_WIDTH);
+           bwMean = mean2(bwCopy(start:stop,innerStart:innerStop));
+           bwCopy(start:stop,innerStart:innerStop) = bwMean;
+           BWspatial = [BWspatial,bwMean];
+        end
+    end
     
-    featVect = {imageFileName,rgbPixelAverage,spa,completeHist, BWfinal};
+    %imshow(bwCopy);
+    
+    featVect = {imageFileName,rgbPixelAverage,spa,completeHist, BWspatial};
 end
