@@ -15,13 +15,19 @@ while answer ~= '2'
             distance = distanceVect(algoChoice,featureChoice, library, testVect);
             [B,I] = sort(distance);
             for i=1:10
+                display(library{I(i)}{1});
                 [J,C] = imread(library{I(i)}{1});
+                J = imresize(J, [128 128]);
                 if ~isempty(C)
                     rgbImage = ind2rgb(J,C);
+                else
+                    rgbImage = im2double(J);
                 end
                 if i == 1
                     currentImage = rgbImage;
                 else
+                    whos currentImage
+                    whos rgbImage
                     currentImage = cat(2,currentImage,rgbImage);
                 end
             end

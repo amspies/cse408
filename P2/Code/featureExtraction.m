@@ -8,8 +8,11 @@
 function featVect = featureExtraction(imageFileName)
     % Read in an image and convert it to RGB
     [I,C] = imread(imageFileName);
+    I = imresize(I, [128 128]);
     if ~isempty(C)
         rgbImage = ind2rgb(I,C);
+    else
+        rgbImage = im2double(I);
     end
     %image(rgbImage);
     % Average Pixel Color
@@ -67,6 +70,9 @@ function featVect = featureExtraction(imageFileName)
     
     %Edge Dectection using Image Segmentation
     %Edge Detection Part
+    if isempty(C)
+        I = rgb2gray(rgbImage);
+    end
     [~, threshold] = edge(I, 'sobel');
     fudgeFactor = 0.5;
     BWs = edge(I, 'sobel', threshold * fudgeFactor);
