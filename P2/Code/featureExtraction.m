@@ -3,7 +3,10 @@
 %Index 2: Average Pixel Color (Not including rgb(0,0,0))
 %Index 3: Spatial Grid of Average Pixel Color
 %Index 4: Color Histogram
-%Index 5: Edge Dectection using Spatial Grid 
+%Index 5: Edge Dectection using Spatial Grid
+
+%Edge Detection code cited from this webpage:
+%   https://www.mathworks.com/help/images/examples/detecting-a-cell-using-image-segmentation.html
 
 function featVect = featureExtraction(imageFileName)
     % Read in an image and convert it to RGB
