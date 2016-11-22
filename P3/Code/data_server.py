@@ -155,4 +155,4 @@ def sendMore():
         emit('nothing')
 
 if __name__ == '__main__':
-    socketio.run(app,port=55222)
+    socketio.run(app,port=55222,debug=True)
