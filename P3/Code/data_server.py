@@ -5,7 +5,7 @@ from stop_words import get_stop_words
 from nltk.tokenize import RegexpTokenizer
 import os
 
-os.chdir('../SentiScores')
+os.chdir('../Data/SentiScores')
 
 sentimentFilename = os.listdir(os.getcwd())[0]
 
@@ -16,7 +16,7 @@ with open(sentimentFilename,'r') as f:
         newPair = pair.split("\t")
         sentimentDict[newPair[0]] = int(newPair[1])
 
-os.chdir('../Code')
+os.chdir('../../Code')
 
 #API keys and tokens needed to stream data
 consumer_key = "C4dBBifR4t8LlusHpNPxFfKdA"

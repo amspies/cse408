@@ -22,7 +22,7 @@ api = tweepy.API(auth)
 
 def collect_tweets_from_five_days_ago(tweet_num,topic):
     #Name file for topic
-    fileName = "../Data/"+ topic.replace(" ","_") + ".csv"
+    fileName = "../Data/Tweets/"+ topic.replace(" ","_") + ".csv"
     #Get today's date
     today = datetime.datetime.today()
     #Get date from 5 days ago
@@ -30,7 +30,7 @@ def collect_tweets_from_five_days_ago(tweet_num,topic):
     #Create a string for the function
     fiveString = fiveDaysAgo.strftime("%Y-%m-%d")
     #Get date from 4 days ago
-    fourDaysAgo = today - datetime.timedelta(days=4)
+    fourDaysAgo = today - datetime.timedelta(days=1)
     #Create a string for the function
     fourString = fourDaysAgo.strftime("%Y-%m-%d")
     #Set a variable to track the number of tweets collected
