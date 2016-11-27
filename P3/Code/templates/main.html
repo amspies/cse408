@@ -51,7 +51,8 @@
     <center>
       <h1>MetaCritic Predictor</h1>
       <input id='topicInput' />
-      <button onclick="stream()">Test</button>
+      <button onclick="stream()">Get Tweets</button>
+      <button onclick="stopStream()">Stop</button>
     </center>
     <div class="container-fluid">
       <div class="row">
@@ -105,17 +106,17 @@
       var rawTweets = document.getElementById('raw_tweets');
       rawTweets.scrollTop = rawTweets.scrollHeight;
       chart.series[0].addPoint([data['rawNeg']+(Math.random() * .45),data['rawPos']+(Math.random() * .45)]);
-      posScore = Math.round(100 * data['avgPos']) / 100
-      negScore = Math.round(100 * data['avgNeg']) / 100
-      unique = Math.round(10000 * data['unique']) / 100
-      regression = Math.round(-8.5778*data['unique']+data['avgPos']*.0541+data['avgNeg']*22.5221+68.0186)
-      $("#pos").text(posScore.toString())
-      $("#neg").text(negScore.toString())
-      $("#uni").text(unique.toString()+"%")
-      $("#pre").text(regression.toString())
+      var posScore = Math.round(100 * data['avgPos']) / 100;
+      var negScore = Math.round(100 * data['avgNeg']) / 100;
+      var unique = Math.round(10000 * data['unique']) / 100;
+      var regression = Math.round(-8.5778*data['unique']+data['avgPos']*.0541+data['avgNeg']*22.5221+68.0186);
+      $("#pos").text(posScore.toString());
+      $("#neg").text(negScore.toString());
+      $("#uni").text(unique.toString()+"%");
+      $("#pre").text(regression.toString());
       socket.emit('okay');
     });
-    socket.on('nothing',function(){
+    socket.on('getTweet',function(){
       socket.emit('okay');
     });
     socket.on('done',function(){
@@ -125,6 +126,17 @@
       chart = createChart();
       $('#raw_tweets').empty()
       socket.emit('stream',{'topic':$('#topicInput').val()});
+      var posScore = Math.round(100 * 0) / 100;
+      var negScore = Math.round(100 * 0) / 100;
+      var unique = Math.round(10000 * 0) / 100;
+      var regression = 0;
+      $("#pos").text(posScore.toString());
+      $("#neg").text(negScore.toString());
+      $("#uni").text(unique.toString()+"%");
+      $("#pre").text(regression.toString());
+    }
+    function stopStream(){
+      socket.emit('stopStream');
     }
     </script>
   </body>

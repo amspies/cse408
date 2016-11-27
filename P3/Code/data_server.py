@@ -30,6 +30,13 @@ api = tweepy.API(auth)
 
 tweet_target_number = 1000
 
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'helloTHERE'
+socketio = SocketIO(app)
+
+def getTweet():
+    socketio.emit("getTweet")
+
 #Create a stream to collect tweets with
 class MyStreamListener(tweepy.StreamListener):
 
@@ -40,9 +47,13 @@ class MyStreamListener(tweepy.StreamListener):
         #Set an attribute of the current number of tweets collected
         self.current_tweets_collected = 0
         self.current_tweets = []
+        self.stopGettingTweet = False
 
     #When a status is received by code from stream
     def on_status(self,status):
+        if self.stopGettingTweet:
+            print("Finally Halting")
+            return False
         #Encode the line to utf-8 so it can be written to csv
         #Also remove new lines so that each line has one tweet
         tweetToWrite = status.text.encode("ascii","ignore").replace('\n',' ').strip()
@@ -50,6 +61,7 @@ class MyStreamListener(tweepy.StreamListener):
         #Increment the number of tweets seen
         self.current_tweets_collected += 1
         self.current_tweets.append(tweetToWrite)
+        getTweet()
         #Check current number of tweets collected. If enough have been
         #Collected end process, if not continue
         if(self.current_tweets_collected >= tweet_target_number):
@@ -63,9 +75,10 @@ class MyStreamListener(tweepy.StreamListener):
         if status_code == 420:
             return False
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'helloTHERE'
-socketio = SocketIO(app)
+    def on_stop_stream(self):
+        print("Setting Stop Getting Tweets to True")
+        self.stopGettingTweet = True
+
 tweetListener = MyStreamListener()
 currentNum = 0
 unique = []
@@ -107,6 +120,12 @@ def hello_world():
 def cool():
     print('Connection Made!')
 
+@socketio.on('stopStream')
+def stopTheStream():
+    print('Stream Stopping')
+    tweetListener.on_stop_stream()
+    emit('done')
+
 @socketio.on('stream')
 def stream(data):
     global currentNum, tweetListener, tweet_remove, totalPos, totalNeg, unique
@@ -131,8 +150,6 @@ def stream(data):
                       'unique': float(len(unique)) / float(currentNum),
                       'rawPos': s[0],
                       'rawNeg': s[1]})
-    else:
-        emit('nothing')
 
 @socketio.on('okay')
 def sendMore():
@@ -151,8 +168,6 @@ def sendMore():
                       'unique': float(len(unique)) / float(currentNum),
                       'rawPos': s[0],
                       'rawNeg': s[1]})
-    else:
-        emit('nothing')
 
 if __name__ == '__main__':
     socketio.run(app,port=55222,debug=True)
