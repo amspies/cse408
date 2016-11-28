@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 import tweepy
 from stop_words import get_stop_words
@@ -26,31 +26,31 @@ auth = tweepy.OAuthHandler(consumer_key,consumer_secret)
 auth.set_access_token(access_token,access_token_secret)
 api = tweepy.API(auth)
 
-tweet_target_number = 1000
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'helloTHERE'
 socketio = SocketIO(app)
 
-def getTweet():
-    socketio.emit("getTweet")
+def getTweet(sid):
+    socketio.emit("getTweet",room=sid)
 
 #Create a stream to collect tweets with
 class MyStreamListener(tweepy.StreamListener):
 
     #Class Constructor
-    def __init__(self, api=None):
+    def __init__(self,sid,tweet_target_number=100,api=None):
         #Inherit from Parent class
         super(MyStreamListener,self).__init__()
         #Set an attribute of the current number of tweets collected
         self.current_tweets_collected = 0
         self.current_tweets = []
         self.stopGettingTweet = False
+        self.sid = sid
+        self.tweet_target_number = tweet_target_number
 
     #When a status is received by code from stream
     def on_status(self,status):
         if self.stopGettingTweet:
-            print("Finally Halting")
+            print("Finally Halting for "+self.sid+"!")
             return False
         #Encode the line to utf-8 so it can be written to csv
         #Also remove new lines so that each line has one tweet
@@ -59,12 +59,13 @@ class MyStreamListener(tweepy.StreamListener):
         #Increment the number of tweets seen
         self.current_tweets_collected += 1
         self.current_tweets.append(tweetToWrite)
-        getTweet()
         #Check current number of tweets collected. If enough have been
         #Collected end process, if not continue
-        if(self.current_tweets_collected >= tweet_target_number):
+        if(self.current_tweets_collected > self.tweet_target_number):
+            print("Ending stream because target num of tweets met.")
             return False
         else:
+            getTweet(self.sid)
             return True
 
     #If an error is hit and the API wants us to stop, return
@@ -74,21 +75,17 @@ class MyStreamListener(tweepy.StreamListener):
             return False
 
     def on_stop_stream(self):
-        print("Setting Stop Getting Tweets to True")
+        print("Setting Stop Getting Tweets to True for "+self.sid+"!")
         self.stopGettingTweet = True
 
-tweetListener = MyStreamListener()
-currentNum = 0
-unique = []
-tweet_remove = ['rt','co']
-totalPos = 0.0
-totalNeg = 0.0
+userData = {}
+userListeners = {}
 en_stop = get_stop_words('en')
 tokenizer = RegexpTokenizer(r'\w+')
 
-def clean_tweet_and_get_data(tweet):
+def clean_tweet_and_get_data(tweet,sid):
     #Set to lower and split the tweet into parts
-    global totalPos, totalNeg, unique, tweet_remove, en_stop, tokenizer, sentimentDict
+    global userData, en_stop, tokenizer, sentimentDict
     rawPos = 0
     rawNeg = 0
     tweet_parts = tweet.lower().split(' ')
@@ -96,76 +93,90 @@ def clean_tweet_and_get_data(tweet):
     tweet_parts = [i for i in tweet_parts if not 'http' in i]
     tweet_parts = tokenizer.tokenize(' '.join(tweet_parts))
     tweet_parts = [i for i in tweet_parts if not i in en_stop]
-    tweet_parts = [i for i in tweet_parts if not i in tweet_remove]
-    if tweet_parts not in unique:
-        unique.append(tweet_parts)
+    tweet_parts = [i for i in tweet_parts if not i in userData[sid]['tweet_remove']]
+    if tweet_parts not in userData[sid]['unique']:
+        userData[sid]['unique'].append(tweet_parts)
     for part in tweet_parts:
         if part in sentimentDict:
             currentScore = sentimentDict[part]
             if currentScore < 0:
-                totalNeg -= currentScore
+                userData[sid]['totalNeg'] -= currentScore
                 rawNeg -= currentScore
             else:
-                totalPos += currentScore
+                userData[sid]['totalPos'] += currentScore
                 rawPos += currentScore
     return [rawPos,rawNeg]
 
 @app.route('/')
-def hello_world():
+def main_page():
     return render_template('main.html')
 
 @socketio.on('connection')
 def cool():
-    print('Connection Made!')
+    global userData,userListeners
+    print('Connection Made by '+request.sid+'!')
+    userData[request.sid] = {'totalPos': 0.0, 'totalNeg': 0.0,'unique': [],'currentNum': 0, 'tweet_remove': ['rt','co'],'tweet_target_number': 100}
+    userListeners[request.sid] = MyStreamListener(request.sid)
+
+@socketio.on('disconnect')
+def cool():
+    print('Disconnection by '+request.sid+'!')
+    del userData[request.sid]
+    userListeners[request.sid].on_stop_stream()
+    del userListeners[request.sid]
+
 
 @socketio.on('stopStream')
 def stopTheStream():
-    print('Stream Stopping')
-    tweetListener.on_stop_stream()
-    emit('done')
+    print('Stream Stopping for '+request.sid+'!')
+    userListeners[request.sid].on_stop_stream()
+    emit('done',room=request.sid)
 
 @socketio.on('stream')
 def stream(data):
-    global currentNum, tweetListener, tweet_remove, totalPos, totalNeg, unique
-    currentNum = 0
-    unique = []
-    totalPos = 0.0
-    totalNeg = 0.0
-    tweet_remove = ['rt','co']
+    global userData, userListeners
+    userData[request.sid]['currentNum'] = 0
+    userData[request.sid]['unique'] = []
+    userData[request.sid]['totalPos'] = 0.0
+    userData[request.sid]['totalNeg'] = 0.0
+    userData[request.sid]['tweet_remove'] = ['rt','co']
     for item in data["topic"].lower().split(" "):
-        tweet_remove.append(item)
-    tweetListener = MyStreamListener()
-    tweetStream = tweepy.Stream(api.auth,tweetListener)
+        userData[request.sid]['tweet_remove'].append(item)
+    userListeners[request.sid].on_stop_stream()
+    userListeners[request.sid] = MyStreamListener(request.sid)
+    tweetStream = tweepy.Stream(api.auth,userListeners[request.sid])
     tweetStream.filter(languages=["en"],track=[data["topic"]],async = True)
-    if len(tweetListener.current_tweets) > 0:
-        tweetToLookAt = tweetListener.current_tweets.pop()
-        print(tweetToLookAt)
-        s = clean_tweet_and_get_data(tweetToLookAt)
-        currentNum += 1
+    if len(userListeners[request.sid].current_tweets) > 0:
+        tweetToLookAt = userListeners[request.sid].current_tweets.pop()
+        s = clean_tweet_and_get_data(tweetToLookAt,request.sid)
+        userData[request.sid]['currentNum'] += 1
+        print("#"+str(userData[request.sid]['currentNum'])+" - "+request.sid+" - "+str(tweetToLookAt))
         emit('tweet',{'rawtweet': tweetToLookAt,
-                      'avgPos': float(totalPos)/float(currentNum),
-                      'avgNeg': float(totalNeg)/float(currentNum),
-                      'unique': float(len(unique)) / float(currentNum),
+                      'avgPos': float(userData[request.sid]['totalPos'])/float(userData[request.sid]['currentNum']),
+                      'avgNeg': float(userData[request.sid]['totalNeg'])/float(userData[request.sid]['currentNum']),
+                      'unique': float(len(userData[request.sid]['unique'])) / float(userData[request.sid]['currentNum']),
                       'rawPos': s[0],
-                      'rawNeg': s[1]})
+                      'rawNeg': s[1]},room=request.sid)
 
 @socketio.on('okay')
 def sendMore():
-    global currentNum, tweetListener, tweet_remove, totalPos, totalNeg, unique
-    if currentNum >= tweet_target_number:
-        emit('done')
-        return
-    while len(tweetListener.current_tweets) > 0:
-        tweetToLookAt = tweetListener.current_tweets.pop()
-        print(tweetToLookAt)
-        s = clean_tweet_and_get_data(tweetToLookAt)
-        currentNum += 1
+    global userData, userListeners
+    if userData[request.sid]['currentNum'] >= userData[request.sid]['tweet_target_number'] and len(userListeners[request.sid].current_tweets) == 0:
+        print("Done sending tweets to "+request.sid+"!")
+        emit('done',room=request.sid)
+    elif len(userListeners[request.sid].current_tweets) > 0:
+        tweetToLookAt = userListeners[request.sid].current_tweets.pop()
+        s = clean_tweet_and_get_data(tweetToLookAt,request.sid)
+        userData[request.sid]['currentNum'] += 1
+        print("#"+str(userData[request.sid]['currentNum'])+" - "+request.sid+" - "+str(tweetToLookAt))
         emit('tweet',{'rawtweet': tweetToLookAt,
-                      'avgPos': float(totalPos)/float(currentNum),
-                      'avgNeg': float(totalNeg)/float(currentNum),
-                      'unique': float(len(unique)) / float(currentNum),
+                      'avgPos': float(userData[request.sid]['totalPos'])/float(userData[request.sid]['currentNum']),
+                      'avgNeg': float(userData[request.sid]['totalNeg'])/float(userData[request.sid]['currentNum']),
+                      'unique': float(len(userData[request.sid]['unique'])) / float(userData[request.sid]['currentNum']),
                       'rawPos': s[0],
-                      'rawNeg': s[1]})
+                      'rawNeg': s[1]},room=request.sid)
+    else:
+        emit('wait')
 
 if __name__ == '__main__':
     socketio.run(app,port=55222,debug=False)

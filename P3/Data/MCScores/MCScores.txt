@@ -15,3 +15,5 @@ Trolls Movie,56
 Watch Dogs 2,83
 Allied Movie,60
 Bad Santa 2,40
+Final Fantasy XV,86
+Manchester by the Sea,96
