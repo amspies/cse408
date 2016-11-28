@@ -5,18 +5,16 @@ from stop_words import get_stop_words
 from nltk.tokenize import RegexpTokenizer
 import os
 
-os.chdir('../Data/SentiScores')
 
-sentimentFilename = os.listdir(os.getcwd())[0]
+sentimentFilename = os.listdir('../Data/SentiScores')[0]
 
 sentimentDict = {}
-with open(sentimentFilename,'r') as f:
+with open('../Data/SentiScores/'+sentimentFilename,'r') as f:
     wordsAndScores = f.read().split('\n')
     for pair in wordsAndScores:
         newPair = pair.split("\t")
         sentimentDict[newPair[0]] = int(newPair[1])
 
-os.chdir('../../Code')
 
 #API keys and tokens needed to stream data
 consumer_key = "C4dBBifR4t8LlusHpNPxFfKdA"
@@ -157,7 +155,7 @@ def sendMore():
     if currentNum >= tweet_target_number:
         emit('done')
         return
-    if len(tweetListener.current_tweets) > 0:
+    while len(tweetListener.current_tweets) > 0:
         tweetToLookAt = tweetListener.current_tweets.pop()
         print(tweetToLookAt)
         s = clean_tweet_and_get_data(tweetToLookAt)
@@ -170,4 +168,4 @@ def sendMore():
                       'rawNeg': s[1]})
 
 if __name__ == '__main__':
-    socketio.run(app,port=55222,debug=True)
+    socketio.run(app,port=55222,debug=False)
