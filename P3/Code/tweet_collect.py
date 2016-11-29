@@ -30,7 +30,7 @@ def collect_tweets_from_five_days_ago(tweet_num,topic):
     #Create a string for the function
     fiveString = fiveDaysAgo.strftime("%Y-%m-%d")
     #Get date from 4 days ago
-    fourDaysAgo = today - datetime.timedelta(days=1)
+    fourDaysAgo = today - datetime.timedelta(days=4)
     #Create a string for the function
     fourString = fourDaysAgo.strftime("%Y-%m-%d")
     #Set a variable to track the number of tweets collected

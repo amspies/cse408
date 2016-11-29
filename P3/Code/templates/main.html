@@ -110,7 +110,7 @@
       var posScore = Math.round(100 * data['avgPos']) / 100;
       var negScore = Math.round(100 * data['avgNeg']) / 100;
       var unique = Math.round(10000 * data['unique']) / 100;
-      var regression = Math.round(-8.5778*data['unique']+data['avgPos']*.0541+data['avgNeg']*22.5221+68.0186);
+      var regression = Math.round(-3.2850*data['unique']+data['avgPos']*0.5334+data['avgNeg']*18.9509+65.6814);
       $("#pos").text(posScore.toString());
       $("#neg").text(negScore.toString());
       $("#uni").text(unique.toString()+"%");

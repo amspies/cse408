@@ -17,3 +17,4 @@ Allied Movie,60
 Bad Santa 2,40
 Final Fantasy XV,86
 Manchester by the Sea,96
+Jackie Movie,82
