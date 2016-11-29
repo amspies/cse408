@@ -28,7 +28,7 @@ api = tweepy.API(auth)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'helloTHERE'
-socketio = SocketIO(app)
+socketio = SocketIO(app,ping_timeout=500)
 
 def getTweet(sid):
     socketio.emit("getTweet",room=sid)
@@ -58,13 +58,13 @@ class MyStreamListener(tweepy.StreamListener):
         #Print the tweet to see it on the screen
         #Increment the number of tweets seen
         self.current_tweets_collected += 1
-        self.current_tweets.append(tweetToWrite)
         #Check current number of tweets collected. If enough have been
         #Collected end process, if not continue
         if(self.current_tweets_collected > self.tweet_target_number):
             print("Ending stream because target num of tweets met.")
             return False
         else:
+            self.current_tweets.append(tweetToWrite)
             getTweet(self.sid)
             return True
 
@@ -115,7 +115,7 @@ def main_page():
 def cool():
     global userData,userListeners
     print('Connection Made by '+request.sid+'!')
-    userData[request.sid] = {'totalPos': 0.0, 'totalNeg': 0.0,'unique': [],'currentNum': 0, 'tweet_remove': ['rt','co'],'tweet_target_number': 100}
+    userData[request.sid] = {'totalPos': 0.0, 'totalNeg': 0.0,'unique': [],'currentNum': 0, 'tweet_remove': ['rt','co'],'tweet_target_number': 100, 'stillGoing': False}
     userListeners[request.sid] = MyStreamListener(request.sid)
 
 @socketio.on('disconnect')
@@ -124,7 +124,6 @@ def cool():
     del userData[request.sid]
     userListeners[request.sid].on_stop_stream()
     del userListeners[request.sid]
-
 
 @socketio.on('stopStream')
 def stopTheStream():
@@ -135,6 +134,7 @@ def stopTheStream():
 @socketio.on('stream')
 def stream(data):
     global userData, userListeners
+    userData[request.sid]['stillGoing'] = True
     userData[request.sid]['currentNum'] = 0
     userData[request.sid]['unique'] = []
     userData[request.sid]['totalPos'] = 0.0
@@ -142,8 +142,13 @@ def stream(data):
     userData[request.sid]['tweet_remove'] = ['rt','co']
     for item in data["topic"].lower().split(" "):
         userData[request.sid]['tweet_remove'].append(item)
+    try:
+        userData[request.sid]['tweet_target_number'] = int(data['numTweets'])
+    except ValueError:
+        print("Invalid number for "+request.sid+". Setting it to 100.")
+        userData[request.sid]['tweet_target_number'] = 100
     userListeners[request.sid].on_stop_stream()
-    userListeners[request.sid] = MyStreamListener(request.sid)
+    userListeners[request.sid] = MyStreamListener(request.sid,userData[request.sid]['tweet_target_number'])
     tweetStream = tweepy.Stream(api.auth,userListeners[request.sid])
     tweetStream.filter(languages=["en"],track=[data["topic"]],async = True)
     if len(userListeners[request.sid].current_tweets) > 0:
@@ -156,13 +161,15 @@ def stream(data):
                       'avgNeg': float(userData[request.sid]['totalNeg'])/float(userData[request.sid]['currentNum']),
                       'unique': float(len(userData[request.sid]['unique'])) / float(userData[request.sid]['currentNum']),
                       'rawPos': s[0],
-                      'rawNeg': s[1]},room=request.sid)
+                      'rawNeg': s[1],
+                      'current': userData[request.sid]['currentNum']},room=request.sid)
 
 @socketio.on('okay')
 def sendMore():
     global userData, userListeners
-    if userData[request.sid]['currentNum'] >= userData[request.sid]['tweet_target_number'] and len(userListeners[request.sid].current_tweets) == 0:
+    if userData[request.sid]['currentNum'] >= userData[request.sid]['tweet_target_number'] and len(userListeners[request.sid].current_tweets) == 0 and userData[request.sid]['stillGoing']:
         print("Done sending tweets to "+request.sid+"!")
+        userData[request.sid]['stillGoing'] = False
         emit('done',room=request.sid)
     elif len(userListeners[request.sid].current_tweets) > 0:
         tweetToLookAt = userListeners[request.sid].current_tweets.pop()
@@ -174,9 +181,8 @@ def sendMore():
                       'avgNeg': float(userData[request.sid]['totalNeg'])/float(userData[request.sid]['currentNum']),
                       'unique': float(len(userData[request.sid]['unique'])) / float(userData[request.sid]['currentNum']),
                       'rawPos': s[0],
-                      'rawNeg': s[1]},room=request.sid)
-    else:
-        emit('wait')
+                      'rawNeg': s[1],
+                      'current': userData[request.sid]['currentNum']},room=request.sid)
 
 if __name__ == '__main__':
     socketio.run(app,port=55222,debug=False)

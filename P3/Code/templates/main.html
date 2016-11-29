@@ -50,7 +50,8 @@
   <body>
     <center>
       <h1>MetaCritic Predictor</h1>
-      <input id='topicInput' />
+      <input id='topicInput' placeholder="Enter Topic"/>
+      <input id='numTweets' placeholder="Number of Tweets"/>
       <button onclick="stream()">Get Tweets</button>
       <button onclick="stopStream()">Stop</button>
     </center>
@@ -128,7 +129,7 @@
     function stream(){
       chart = createChart();
       $('#raw_tweets').empty()
-      socket.emit('stream',{'topic':$('#topicInput').val()});
+      socket.emit('stream',{'topic':$('#topicInput').val(), 'numTweets':$('#numTweets').val()});
       var posScore = Math.round(100 * 0) / 100;
       var negScore = Math.round(100 * 0) / 100;
       var unique = Math.round(10000 * 0) / 100;
