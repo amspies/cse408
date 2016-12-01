@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script>
+    //Function to create the tweet scatter plot in the browser window
     function createChart(){
       return Highcharts.chart('chart', {
           title:{
@@ -117,16 +118,21 @@
       </div>
     </div>
     <script type="text/javascript" charset="utf-8">
+    //Create a socket to the server
     var socket = io.connect('http://' + document.domain + ':' + location.port);
+    //Create a scatter plot chart on the screen
     var chart = createChart();
+    //On connect emit connection
     socket.on('connect', function() {
         socket.emit('connection');
     });
+    //When a tweet is received update the browser window with the new data
     socket.on('tweet',function(data){
-      console.log(data)
+      //Print tweet to the screen
       $("#raw_tweets").append("<p>"+"<span style='color:green;'>"+data['current']+") </span> "+data['rawtweet']+"</p>");
       var rawTweets = document.getElementById('raw_tweets');
       rawTweets.scrollTop = rawTweets.scrollHeight;
+      //Add tweet scores to the scatter plot
       if(data['rawPos'] > data['rawNeg']){
         chart.series[0].addPoint([data['rawNeg']+(Math.random() * .45),data['rawPos']+(Math.random() * .45)]);
       }
@@ -136,6 +142,7 @@
       else{
         chart.series[2].addPoint([data['rawNeg']+(Math.random() * .45),data['rawPos']+(Math.random() * .45)]);
       }
+      //Format values to be printed on screen and print them
       var posScore = Math.round(100 * data['avgPos']) / 100;
       var negScore = Math.round(100 * data['avgNeg']) / 100;
       var unique = Math.round(10000 * data['unique']) / 100;
@@ -144,18 +151,26 @@
       $("#neg").text(negScore.toString());
       $("#uni").text(unique.toString()+"%");
       $("#pre").text(regression.toString());
+      //Emit okay to ask for more tweets
       socket.emit('okay');
     });
+    //If the server asks the browser to ask for more tweets, ask for more tweets
     socket.on('getTweet',function(){
       socket.emit('okay');
     });
+    //If the server says it is done sending tweets, log it to the console
     socket.on('done',function(){
       console.log("Finished getting tweets")
     });
+    //function that is called when stream is asked to start
     function stream(){
+      //Create a new plot and remove the old one
       chart = createChart();
-      $('#raw_tweets').empty()
+      //Clear the current tweet list
+      $('#raw_tweets').empty();
+      //Emit the request for more tweets of a given topic decided by the user
       socket.emit('stream',{'topic':$('#topicInput').val(), 'numTweets':$('#numTweets').val()});
+      //0 out the printed values on screen
       var posScore = Math.round(100 * 0) / 100;
       var negScore = Math.round(100 * 0) / 100;
       var unique = Math.round(10000 * 0) / 100;
@@ -165,6 +180,7 @@
       $("#uni").text(unique.toString()+"%");
       $("#pre").text(regression.toString());
     }
+    //If user asks to stop the stream, tell the server to stop sending tweets
     function stopStream(){
       socket.emit('stopStream');
     }
