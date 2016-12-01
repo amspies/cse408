@@ -25,12 +25,16 @@
               },
               startOnTick: true,
               endOnTick: true,
-              showLastLabel: true
+              showLastLabel: true,
+              min: 0,
+              max: 10
           },
           yAxis: {
               title: {
                   text: 'Positive Score for Tweet'
-              }
+              },
+              min: 0,
+              max: 10
           },
           legend: {
               layout: 'vertical',
@@ -40,9 +44,23 @@
               borderWidth: 1
           },
           series: [{
+              name: "Net Positive Tweets",
               showInLegend: false,
-              data: []
-            }]
+              data: [],
+              color: '#3333ff'
+            },
+            {
+                name: "Net Negative Tweets",
+                showInLegend: false,
+                data: [],
+                color: '#ff0000'
+              },
+              {
+                  name: "Net Neutral Tweets",
+                  showInLegend: false,
+                  data: [],
+                  color: '#000000'
+                }]
       });
 }
   </script>
@@ -99,21 +117,29 @@
       </div>
     </div>
     <script type="text/javascript" charset="utf-8">
-    var getTweetNum = 0;
     var socket = io.connect('http://' + document.domain + ':' + location.port);
     var chart = createChart();
     socket.on('connect', function() {
         socket.emit('connection');
     });
     socket.on('tweet',function(data){
-      $("#raw_tweets").append("<p>"+data['rawtweet']+"</p>");
+      console.log(data)
+      $("#raw_tweets").append("<p>"+"<span style='color:green;'>"+data['current']+") </span> "+data['rawtweet']+"</p>");
       var rawTweets = document.getElementById('raw_tweets');
       rawTweets.scrollTop = rawTweets.scrollHeight;
-      chart.series[0].addPoint([data['rawNeg']+(Math.random() * .45),data['rawPos']+(Math.random() * .45)]);
+      if(data['rawPos'] > data['rawNeg']){
+        chart.series[0].addPoint([data['rawNeg']+(Math.random() * .45),data['rawPos']+(Math.random() * .45)]);
+      }
+      else if(data['rawPos'] < data['rawNeg']){
+        chart.series[1].addPoint([data['rawNeg']+(Math.random() * .45),data['rawPos']+(Math.random() * .45)]);
+      }
+      else{
+        chart.series[2].addPoint([data['rawNeg']+(Math.random() * .45),data['rawPos']+(Math.random() * .45)]);
+      }
       var posScore = Math.round(100 * data['avgPos']) / 100;
       var negScore = Math.round(100 * data['avgNeg']) / 100;
       var unique = Math.round(10000 * data['unique']) / 100;
-      var regression = Math.round(-3.2850*data['unique']+data['avgPos']*0.5334+data['avgNeg']*18.9509+65.6814);
+      var regression = Math.round(data["modelUnique"]*data['unique']+data['avgPos']*data["modelAvgPos"]+data['avgNeg']*data["modelAvgNeg"]+data["modelIntercept"]);
       $("#pos").text(posScore.toString());
       $("#neg").text(negScore.toString());
       $("#uni").text(unique.toString()+"%");
@@ -121,7 +147,6 @@
       socket.emit('okay');
     });
     socket.on('getTweet',function(){
-      getTweetNum += 1;
       socket.emit('okay');
     });
     socket.on('done',function(){

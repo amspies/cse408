@@ -4,17 +4,9 @@ import tweepy
 from stop_words import get_stop_words
 from nltk.tokenize import RegexpTokenizer
 import os
+import model_building as mb
 
-
-sentimentFilename = os.listdir('../Data/SentiScores')[0]
-
-sentimentDict = {}
-with open('../Data/SentiScores/'+sentimentFilename,'r') as f:
-    wordsAndScores = f.read().split('\n')
-    for pair in wordsAndScores:
-        newPair = pair.split("\t")
-        sentimentDict[newPair[0]] = int(newPair[1])
-
+sentimentDict = mb.import_sentiment_dict()
 
 #API keys and tokens needed to stream data
 consumer_key = "C4dBBifR4t8LlusHpNPxFfKdA"
@@ -133,7 +125,7 @@ def stopTheStream():
 
 @socketio.on('stream')
 def stream(data):
-    global userData, userListeners
+    global userData, userListeners, model
     userData[request.sid]['stillGoing'] = True
     userData[request.sid]['currentNum'] = 0
     userData[request.sid]['unique'] = []
@@ -163,11 +155,15 @@ def stream(data):
                       'unique': float(len(userData[request.sid]['unique'])) / float(userData[request.sid]['currentNum']),
                       'rawPos': s[0],
                       'rawNeg': s[1],
+                      'modelAvgPos': model["avgPos"],
+                      'modelAvgNeg': model["avgNeg"],
+                      'modelUnique': model["unique"],
+                      'modelIntercept': model["intercept"],
                       'current': userData[request.sid]['currentNum']},room=request.sid)
 
 @socketio.on('okay')
 def sendMore():
-    global userData, userListeners
+    global userData, userListeners, model
     if userData[request.sid]['currentNum'] >= userData[request.sid]['tweet_target_number'] and len(userListeners[request.sid].current_tweets) == 0 and userData[request.sid]['stillGoing']:
         print("Done sending tweets to "+request.sid+"!")
         userData[request.sid]['stillGoing'] = False
@@ -183,7 +179,15 @@ def sendMore():
                       'unique': float(len(userData[request.sid]['unique'])) / float(userData[request.sid]['currentNum']),
                       'rawPos': s[0],
                       'rawNeg': s[1],
+                      'modelAvgPos': model["avgPos"],
+                      'modelAvgNeg': model["avgNeg"],
+                      'modelUnique': model["unique"],
+                      'modelIntercept': model["intercept"],
                       'current': userData[request.sid]['currentNum']},room=request.sid)
 
 if __name__ == '__main__':
+    global model
+    print("Building Regression Model")
+    model = mb.getModelForWebsite()
+    print("Server running on localhost:55222!")
     socketio.run(app,port=55222,debug=False)

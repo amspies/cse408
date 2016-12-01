@@ -117,6 +117,14 @@ def get_regression_model(df,variableColumns,predictColumn):
     lm.fit(x,y)
     return {"intercept": lm.intercept_, "coef":lm.coef_, "variables":variableColumns, "predict":predictColumn}
 
+def getModelForWebsite():
+    sentimentDict = import_sentiment_dict()
+    data = import_dataframe_of_media_attributes(sentimentDict)
+    trainingData = data[data['names'].isin(TRAINING)]
+    model = get_regression_model(trainingData,["avgNeg","avgPos","unique"],"mcScore")
+    return {"intercept": model["intercept"],"avgNeg": model["coef"][model["variables"].index("avgNeg")],
+            "avgPos":model["coef"][model["variables"].index("avgPos")], "unique":model["coef"][model["variables"].index("unique")]}
+
 def main():
     sentimentDict = import_sentiment_dict()
     data = import_dataframe_of_media_attributes(sentimentDict)
