@@ -63,7 +63,10 @@
           </div>
         </div>
         <div class="col-md-6">
-          <center><h3>Positive vs Negative Scores by Tweet</h3></center>
+          <center>
+            <h3>Positive vs Negative Scores by Tweet</h3>
+            <h4>(With Jitter)</h4>
+          </center>
           <div id="chart">
           </div>
         </div>
@@ -103,7 +106,6 @@
         socket.emit('connection');
     });
     socket.on('tweet',function(data){
-      console.log(data);
       $("#raw_tweets").append("<p>"+data['rawtweet']+"</p>");
       var rawTweets = document.getElementById('raw_tweets');
       rawTweets.scrollTop = rawTweets.scrollHeight;
@@ -119,7 +121,6 @@
       socket.emit('okay');
     });
     socket.on('getTweet',function(){
-      console.log(getTweetNum);
       getTweetNum += 1;
       socket.emit('okay');
     });

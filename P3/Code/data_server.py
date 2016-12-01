@@ -151,6 +151,7 @@ def stream(data):
     userListeners[request.sid] = MyStreamListener(request.sid,userData[request.sid]['tweet_target_number'])
     tweetStream = tweepy.Stream(api.auth,userListeners[request.sid])
     tweetStream.filter(languages=["en"],track=[data["topic"]],async = True)
+    print("Starting stream for "+request.sid+"!")
     if len(userListeners[request.sid].current_tweets) > 0:
         tweetToLookAt = userListeners[request.sid].current_tweets.pop()
         s = clean_tweet_and_get_data(tweetToLookAt,request.sid)
